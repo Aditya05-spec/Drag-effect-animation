@@ -117,78 +117,82 @@
 //     container.appendChild(card);
 // }
 
-let container = document.querySelector('.container');
-let number = 12;
+const container = document.querySelector('.container');
+const number = 10;
 let cards = [];
 
-// Create and push cards to array
+// Create cards
 for (let i = 0; i < number; i++) {
-    let card = document.createElement('div');
-    card.className = 'card';
-    card.textContent = `${i + 1}`;
-    container.appendChild(card);
-    cards.push(card);
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.textContent = i + 1;
+  container.appendChild(card);
+  cards.push(card);
 }
 
-function updateCardTransforms() {
-    cards.forEach((card, i) => {
-        let zPos = i * -120;
-        let yPos = i * -20;
-        card.style.transition = 'transform 0.6s ease, filter 0.3s ease, opacity 0.3s';
-        card.style.zIndex = number - i;
-        card.style.filter = `hue-rotate(${i * 30}deg)`;
+// Position cards in 3D stack
+function updateStack() {
+  cards.forEach((card, i) => {
+    const z = i * -100;
+    const y = i * -20;
+    card.style.transform = `translateZ(${z}px) translateY(${y}px)`;
+    card.style.zIndex = number - i;
 
-        // Reset styles first
-        card.classList.remove("pop");
-
-        // Set transform
-        card.style.transform = `translateZ(${zPos}px) translateY(${yPos}px)`;
-
-        // Add pop effect to the SECOND card
-        if (i === 1) {
-            card.classList.add("pop");
-        }
-    });
+    card.classList.remove('pop', 'hidden');
+    if (i === 1) card.classList.add('pop');
+    if (i > 6) card.classList.add('hidden');
+  });
 }
 
-updateCardTransforms();
+updateStack();
 
-// Drag interaction
+// Dragging logic
 let startX = 0;
-let isDragging = false;
+let dragging = false;
 
 container.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    startX = e.clientX;
+  dragging = true;
+  startX = e.clientX;
 });
 
-document.addEventListener('mouseup', (e) => {
-    if (!isDragging) return;
-    isDragging = false;
-    let endX = e.clientX;
+container.addEventListener('mouseup', (e) => {
+  if (!dragging) return;
+  dragging = false;
 
-    if (endX < startX) {
-        let firstCard = cards[0];
-        firstCard.style.transform += ' translateZ(200px)';
-        firstCard.style.opacity = '0.5';
+  const diff = e.clientX - startX;
 
-        setTimeout(() => {
-            firstCard.style.opacity = '1';
-            cards.shift();
-            cards.push(firstCard);
-            updateCardTransforms();
-        }, 300);
-    } else if (endX > startX) {
-        let lastCard = cards[cards.length - 1];
-        lastCard.style.transform = `translateZ(200px) translateY(-20px)`;
-        lastCard.style.opacity = '0.5';
+  if (diff < -50) {
+    // Forward movement
+    simulateStackShift('forward');
+  } else if (diff > 50) {
+    // Backward movement
+    simulateStackShift('backward');
+  }
+});
 
-        setTimeout(() => {
-            lastCard.style.opacity = '1';
-            cards.pop();
-            cards.unshift(lastCard);
-            updateCardTransforms();
-        }, 300);
+function simulateStackShift(direction) {
+  // Animate all cards slightly in Z/Y before shift
+  cards.forEach((card, i) => {
+    const depthOffset = direction === 'forward' ? 50 : -50;
+    const yOffset = direction === 'forward' ? 10 : -10;
+    const z = i * -100 + depthOffset;
+    const y = i * -20 + yOffset;
+    card.style.transform = `translateZ(${z}px) translateY(${y}px)`;
+  });
+
+  // Wait for animation to finish then reorder
+  setTimeout(() => {
+    if (direction === 'forward') {
+      const first = cards.shift();
+      cards.push(first);
+    } else {
+      const last = cards.pop();
+      cards.unshift(last);
     }
-});
+    updateStack();
+  }, 200);
+}
+
+
+
 
